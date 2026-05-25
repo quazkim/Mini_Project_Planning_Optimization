@@ -364,6 +364,32 @@ def solve_with_greedy(
             if placed:
                 break
 
+    # Repair pass: try to insert still-unassigned classes, shortest duration first.
+    unassigned = [c for c in class_list if not c.is_assigned]
+    for c in sorted(unassigned, key=lambda x: (x.t, -x.s)):
+        if c.g not in teacher_busy:
+            teacher_busy[c.g] = [False] * TOTAL_SLOTS
+        for r in range(1, M + 1):
+            room = rooms[r]
+            if room is None or room.capacity < c.s:
+                continue
+            for s0 in _allowed_starts_for_duration(c.t):
+                ok = all(
+                    not room_busy[r][tt] and not teacher_busy[c.g][tt]
+                    for tt in range(s0, s0 + c.t)
+                )
+                if ok:
+                    for tt in range(s0, s0 + c.t):
+                        room_busy[r][tt] = True
+                        teacher_busy[c.g][tt] = True
+                    c.assigned_room = r
+                    c.assigned_slot = s0 + 1
+                    c.is_assigned = True
+                    assigned.append(c)
+                    break
+            if c.is_assigned:
+                break
+
     return assigned
 
 
