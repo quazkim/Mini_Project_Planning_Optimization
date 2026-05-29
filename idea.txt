@@ -1,0 +1,88 @@
+========================================================
+  Ý TƯỞNG THUẬT TOÁN: GREEDY + EJECTION CHAIN (LOCAL SEARCH)
+========================================================
+
+MỤC TIÊU
+---------
+Xếp tối đa số lớp học vào (slot, phòng) sao cho:
+  - Không trùng lịch giáo viên
+  - Không trùng lịch phòng
+  - Phòng đủ sức chứa
+  - Lớp không học xuyên ngày (5 ngày x 12 tiết = 60 tiết)
+
+
+PHASE 1 — GREEDY PASS
+----------------------
+Ý tưởng: Với từng lớp chưa xếp, tìm (slot, phòng) hợp lệ đầu tiên và xếp luôn.
+
+Thứ tự duyệt:
+  - Lớp: sort theo (t tăng, s tăng) — tiết ngắn và ít SV trước
+  - Phòng: sort theo capacity tăng dần — phòng vừa đủ chứa trước
+  - Slot: theo _allowed_starts(t) — đảm bảo không xuyên ngày
+
+Điều kiện xếp tại slot s0, phòng r:
+  - room_busy[r][s0..s0+t) = False (phòng rảnh)
+  - teacher_busy[g][s0..s0+t) = False (giáo viên rảnh)
+  - rooms[r].capacity >= s (đủ chỗ)
+
+Sau khi xếp: đánh dấu room_busy và teacher_busy = True cho toàn bộ t slot.
+
+Vòng lặp while: tiếp tục cho đến khi không xếp thêm được lớp nào trong 1 pass.
+
+
+PHASE 2 — EJECTION CHAIN (LOCAL SEARCH)
+-----------------------------------------
+Ý tưởng: Sau greedy, còn lớp chưa xếp vì bị "chặn" bởi đúng 1 lớp khác.
+Thử di chuyển lớp đang chặn (victim) sang chỗ khác để nhường chỗ cho lớp mới.
+
+Điều kiện kích hoạt: lớp C chưa xếp, tại (s0, r) chỉ có ĐÚNG 1 lớp B đang chặn.
+
+Các bước:
+  1. Tạm thời bỏ B khỏi lịch (giải phóng slot của B)
+  2. Xếp C vào (s0, r) — kiểm tra lại để chắc chắn
+  3. Tìm chỗ mới cho B (gọi lại _find_slot)
+     - Nếu B tìm được chỗ mới → commit cả C lẫn B (Q không đổi, nhưng sắp xếp thay đổi)
+     - Nếu B không tìm được → rollback, khôi phục trạng thái cũ
+  4. Sau mỗi lần ejection thành công → greedy pass chạy lại → có thể xếp thêm lớp mới
+
+Data structures bổ sung:
+  - room_occ[r][tt]     : lớp nào đang chiếm phòng r tại slot tt
+  - teacher_occ[g][tt]  : lớp nào đang chiếm giáo viên g tại slot tt
+  → Cần để biết "ai đang chặn", không chỉ biết "có bị chặn hay không"
+
+
+VÒNG LẶP CHÍNH
+---------------
+  prev_count = -1
+  while True:
+      greedy_pass()
+      cur_count = số lớp đã xếp
+      if cur_count == prev_count: break   ← không tăng thêm → dừng
+      prev_count = cur_count
+      ejection_chain()                    ← thử sắp xếp lại để mở chỗ mới
+
+
+TẠI SAO EJECTION CHAIN GIÚP TĂNG Q?
+-------------------------------------
+Greedy bị phụ thuộc vào thứ tự xử lý. Ví dụ:
+  - Lớp A được xếp vào slot 5, phòng 1 (dùng greedy)
+  - Lớp B muốn slot 5, phòng 1 nhưng bị A chặn → B không được xếp
+  - Ejection: bỏ A ra, xếp B vào slot 5/phòng 1, tìm chỗ mới cho A
+  - A vào slot 10/phòng 2 → lịch thay đổi
+  - Greedy chạy lại → lớp C (trước bị A chặn ở slot 10) giờ xếp được → Q tăng
+
+Tóm lại: Ejection không tự tăng Q trực tiếp,
+mà tạo ra sắp xếp mới → greedy tận dụng để tăng Q.
+
+
+KẾT QUẢ BENCHMARK (43 test)
+-----------------------------
+  Tổng No LS  : 10779 lớp
+  Tổng With LS: 10837 lớp
+  Cải thiện   : +58 lớp (~0.5%)
+
+  Nổi bật:
+    comp11   (N=162, M=5) : +15  ← ít phòng, bottleneck cao
+    test08   (N=1000,M=50): +23  ← N lớn, nhiều cơ hội ejection
+    hustack02(N=500, M=50): +6
+========================================================
