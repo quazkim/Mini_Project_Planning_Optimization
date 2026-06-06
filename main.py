@@ -24,6 +24,7 @@ Có 2 hướng giải:
 
 from __future__ import annotations
 
+import os
 import sys
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
@@ -166,6 +167,18 @@ def solve_with_cp_sat(
 
     _reset_assignments(classes)
 
+    # --- Warm-start: chạy Greedy trước để thu hint (room + slot) cho CP-SAT ---
+    # solve_with_greedy được định nghĩa bên dưới; Python resolve tên hàm lúc runtime nên OK.
+    _debug("[CP-SAT] Chạy Greedy để tạo warm-start hints...")
+    _greedy_hints = solve_with_greedy(N, M, classes, rooms)
+    _hint_room: Dict[int, int] = {}    # class_id -> room_id
+    _hint_start: Dict[int, int] = {}   # class_id -> start slot (0-based)
+    for _ch in _greedy_hints:
+        _hint_room[_ch.class_id] = _ch.assigned_room      # type: ignore[assignment]
+        _hint_start[_ch.class_id] = _ch.assigned_slot - 1  # chuyển về 0-based
+    _debug(f"[CP-SAT] Warm-start Q={len(_greedy_hints)}, chuẩn bị inject {len(_hint_room)} hints...")
+    _reset_assignments(classes)  # Dọn sạch để CP-SAT ghi đè kết quả riêng của nó
+
     model = cp_model.CpModel()
 
     # a_i: whether class i is scheduled
@@ -249,16 +262,42 @@ def solve_with_cp_sat(
     # Objective: maximize number of scheduled classes
     model.Maximize(sum(a.values()) if a else 0)
 
+    # --- Inject warm-start hints vào model (gọi trước solver.Solve) ---
+    # Với mỗi lớp i có trong nghiệm Greedy: hint a[i]=1, b[i,r_h]=1, start[i,r_h]=s0
+    # Với lớp không có trong Greedy: hint a[i]=0
+    for i, a_i in a.items():
+        if i in _hint_room:
+            model.AddHint(a_i, 1)
+            r_h = _hint_room[i]
+            for r in range(1, M + 1):
+                if (i, r) in b:
+                    model.AddHint(b[(i, r)], 1 if r == r_h else 0)
+                if (i, r) in start and r == r_h:
+                    model.AddHint(start[(i, r)], _hint_start[i])
+        else:
+            model.AddHint(a_i, 0)
+
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 300.0
-    # A couple of sane defaults
-    solver.parameters.num_search_workers = 8
+    solver.parameters.max_time_in_seconds = 2.0
+    # QUAN TRỌNG: Giảm từ 300s xuống 2s để không bị judge kill.
+    # Warm-start từ Greedy đã đảm bảo CP-SAT có nghiệm hợp lệ ngay lập tức;
+    # 2s là đủ để CP-SAT cải thiện thêm trên đó.
+    # Dùng số worker theo CPU thực tế thay vì hardcode = 8
+    solver.parameters.num_search_workers = max(1, os.cpu_count() or 4)
 
     status = solver.Solve(model)
 
     assigned_list: List[ClassDTO] = []
 
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        # Log rõ kết quả: OPTIMAL (tìm được nghiệm tốt nhất) hay FEASIBLE (timeout, có thể còn gap)
+        if status == cp_model.OPTIMAL:
+            _debug(f"[CP-SAT] OPTIMAL — Q={int(solver.ObjectiveValue())}")
+        else:
+            _debug(
+                f"[CP-SAT] FEASIBLE (timeout) — Q={int(solver.ObjectiveValue())}, "
+                f"upper_bound={int(solver.BestObjectiveBound())}"
+            )
         for i in range(1, N + 1):
             c = classes[i]
             if c is None:
@@ -423,9 +462,19 @@ if __name__ == '__main__':
     else:  # Chế độ "AUTO" chuẩn để nộp bài HUSTack
         if N <= 100:
             try:
-                _, assigned_list = solve_with_cp_sat(N, M, classes, rooms)
-            except Exception:
-                # Nếu hệ thống HUSTack không có thư viện ortools, tự động rơi về dùng Greedy + Meta
+                _, cp_result = solve_with_cp_sat(N, M, classes, rooms)
+                if cp_result:
+                    # CP-SAT tìm được nghiệm (luôn >= Greedy nhờ warm-start)
+                    assigned_list = cp_result
+                else:
+                    # CP-SAT timeout mà chưa kịp tìm nghiệm nào (status=UNKNOWN)
+                    # classes đang ở trạng thái reset sạch → chạy lại Greedy an toàn
+                    _debug("[AUTO] CP-SAT không tìm được nghiệm, fallback Greedy...")
+                    greedy_res = solve_with_greedy(N, M, classes, rooms)
+                    assigned_list = optimize_with_metaheuristic(N, M, classes, rooms, greedy_res)
+            except Exception as _e:
+                # ImportError (không có ortools) hoặc lỗi bất ngờ khác
+                _debug(f"[AUTO] CP-SAT lỗi ({_e}), fallback Greedy...")
                 greedy_res = solve_with_greedy(N, M, classes, rooms)
                 assigned_list = optimize_with_metaheuristic(N, M, classes, rooms, greedy_res)
         else:
