@@ -1,0 +1,69 @@
+name: Kappa Routing Survey
+
+# Khảo sát ngưỡng định tuyến κ = U·M (LS vs ALNS) trên TẤT CẢ instance trong
+# test_input/, chạy song song bằng matrix (16 shard). Kích hoạt thủ công.
+
+on:
+  workflow_dispatch:
+    inputs:
+      time_limit:
+        description: "Time-limit mỗi thuật toán (giây)"
+        required: false
+        default: "15"
+      seeds:
+        description: "Danh sách seed (vd 1,7)"
+        required: false
+        default: "1,7"
+
+permissions:
+  contents: read
+
+jobs:
+  survey:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false          # một shard lỗi không hủy các shard khác
+      max-parallel: 16          # <= 20 (giới hạn Free); chỉnh xuống nếu cần
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    env:
+      SHARD_TOTAL: "16"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run shard ${{ matrix.shard }}
+        env:
+          SHARD: ${{ matrix.shard }}
+          KAPPA_TL: ${{ github.event.inputs.time_limit }}
+          KAPPA_SEEDS: ${{ github.event.inputs.seeds }}
+        run: python report/scripts/exp_kappa_shard.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kappa-shard-${{ matrix.shard }}
+          path: kappa_out/*.json
+          if-no-files-found: ignore
+
+  aggregate:
+    needs: survey
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install matplotlib numpy
+      - uses: actions/download-artifact@v4
+        with:
+          path: kappa_out
+          pattern: kappa-shard-*
+          merge-multiple: true
+      - name: Aggregate + plot
+        run: python report/scripts/exp_kappa_aggregate.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kappa-survey-result
+          path: |
+            kappa_survey.json
+            kappa_routing.png
