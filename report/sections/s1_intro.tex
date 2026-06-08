@@ -1,0 +1,155 @@
+% ===================== 1. GIỚI THIỆU =====================
+\section{Giới thiệu}
+\label{sec:intro}
+
+\subsection{Bài toán và động lực}
+\label{sec:motivation}
+Bài toán xếp thời khóa biểu thuộc lớp \emph{phân bổ tài nguyên thời gian/phòng học}:
+gán cho mỗi lớp một phòng và một tiết bắt đầu sao cho thỏa các ràng buộc tài nguyên
+và tối đa hóa số lớp được xếp. Đây là một biến thể \emph{gán có giới hạn tài nguyên}
+(resource-constrained assignment) --- NP-khó: các ràng buộc chống xung đột làm không
+gian nghiệm khả thi vỡ vụn, và mỗi lớp có tới hàng trăm lựa chọn vị trí.
+
+Động lực thực tế: cùng một bài toán nhưng xuất hiện ở nhiều quy mô và yêu cầu trái
+ngược nhau --- từ xếp lịch một bộ môn (vài chục lớp, cần tối ưu tuyệt đối), tới
+công cụ chỉnh lịch tương tác (cần phản hồi tức thời), tới xếp lịch toàn trường
+(hàng nghìn lớp, chạy theo lô). Một phát hiện quan trọng dẫn dắt toàn bộ thiết kế:
+\emph{nguồn độ khó không phải kích thước $N$ mà là độ chặt tài nguyên} --- điều
+được kiểm chứng định lượng ở mục~\ref{sec:cpsat-limit}.
+
+Hình~\ref{fig:problem} minh họa bài toán: gán mỗi lớp vào một khối $t_i$ tiết
+\emph{liên tiếp} trong một phòng, tôn trọng ba ràng buộc cứng (sức chứa, không
+trùng phòng, không trùng giáo viên) và không vắt chéo ngày.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  font=\scriptsize,
+  gcell/.style={draw, gray!55, minimum size=0.5cm, inner sep=0pt},
+  g1blk/.style={draw=cfast!70, fill=cfast!22, thick, rounded corners=1.5pt, minimum height=0.42cm, inner sep=1pt},
+  g2blk/.style={draw=cexact!70, fill=cexact!18, thick, rounded corners=1.5pt, minimum height=0.42cm, inner sep=1pt},
+  forb/.style={draw=cscale, fill=cscale!15, very thick, dashed, rounded corners=1.5pt, minimum height=0.42cm, inner sep=1pt, text=cscale},
+  rlbl/.style={font=\scriptsize, anchor=east},
+  note/.style={font=\scriptsize\itshape, align=center},
+]
+  % --- lưới phòng x tiết (một ngày: 12 tiết) ---
+  \foreach \r in {0,1,2} \foreach \p in {1,...,12} {\node[gcell] at (\p*0.5,-\r*0.55){};}
+  % nhãn tiết
+  \foreach \p in {1,...,12} {\node[font=\tiny, anchor=south] at (\p*0.5,0.28){\p};}
+  \node[font=\scriptsize\bfseries, anchor=south] at (3.25,0.62) {Thứ Hai --- 12 tiết};
+  % nhãn phòng
+  \node[rlbl] at (0.15,0) {$P_1\,(c{=}50)$};
+  \node[rlbl] at (0.15,-0.55) {$P_2\,(c{=}80)$};
+  \node[rlbl] at (0.15,-1.10) {$P_3\,(c{=}40)$};
+  % --- các lớp đã xếp (màu = giáo viên) ---
+  \node[g1blk, minimum width=0.95cm] (A) at (0.75,0)    {A\,$g_1$};
+  \node[g2blk, minimum width=1.95cm] (B) at (1.75,-0.55){B\,$g_2$ ($s{=}70$)};
+  \node[g1blk, minimum width=0.95cm] (C) at (2.25,-1.10){C\,$g_1$};
+  % --- ranh giới ngày + khối vi phạm ---
+  \draw[very thick, cscale!70] (6.25,0.42) -- (6.25,-1.45);
+  \node[gcell, fill=gray!8] at (6.5,0){}; \node[gcell, fill=gray!8] at (7.0,0){};
+  \node[forb, minimum width=1.45cm] (X) at (6.25,0) {\,$\times$\,};
+  \node[note, text=cscale, anchor=west] at (6.7,0.0) {};
+  % --- chú thích ràng buộc ---
+  \node[note, anchor=north] (capn) at (1.75,-1.75) {Sức chứa: $s_i \le c_v$\\($B$ cần $P_2$, không vào được $P_3$)};
+  \draw[->, thick, gray] (capn.north) to[out=90,in=270] (B.south);
+  \node[note, text=cfast!70!black, anchor=north] (tch) at (5.0,-1.75) {Cùng giáo viên $g_1$:\\khác giờ (không trùng)};
+  \draw[<->, thick, cfast, dashed] (A.east) to[out=-40,in=120] (C.north east);
+  \node[note, text=cscale, anchor=north] (dayn) at (7.0,-1.0) {Không vắt\\chéo ngày};
+  \draw[->, thick, cscale] (dayn.north) to[out=90,in=270] (X.south east);
+\end{tikzpicture}
+\caption{Minh họa bài toán trên một ngày (tuần có $5$ ngày $\times\,12$ tiết
+$=60$ tiết). Mỗi lớp là một khối $t_i$ tiết liên tiếp đặt trong một phòng; màu khối
+$=$ giáo viên. Ba ràng buộc cứng: \textbf{sức chứa} ($s_i\le c_v$), \textbf{không
+trùng phòng} (mỗi ô tối đa một lớp), \textbf{không trùng giáo viên}; khối đỏ vi
+phạm \emph{vắt chéo ngày}. Mục tiêu: tối đa hóa số lớp xếp được.}
+\label{fig:problem}
+\end{figure}
+
+\subsection{Kiến trúc hệ thống (Đa tầng: Exact $\to$ Heuristic $\to$ Metaheuristic)}
+\label{sec:arch}
+Vì không một thuật toán nào tối ưu cho mọi quy mô, hệ thống được tổ chức thành
+\emph{ba tầng} với một bộ định tuyến phân loại theo quy mô/độ chặt (Hình~\ref{fig:pipeline}).
+Điểm thiết kế mấu chốt: cả ba tầng dùng chung nghiệm \textbf{Greedy} làm hạt giống
+(warm-start cho CP-SAT, cấu hình nền cho Local Search và ALNS).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  font=\small,
+  >={Stealth[round]},
+  box/.style={rounded corners=3pt, draw, thick, align=center, inner sep=5pt, minimum height=1.0cm},
+  io/.style={box, fill=soft, draw=accent},
+  router/.style={box, fill=accent!12, draw=accent, minimum height=1.2cm},
+  seed/.style={box, fill=cseed!12, draw=cseed, text=cseed!60!black},
+  tier/.style={box, minimum width=3.7cm, text width=3.5cm},
+  lbl/.style={font=\scriptsize\itshape, align=center},
+  arr/.style={->, thick},
+  seedarr/.style={->, thick, cseed, dashed},
+]
+\node[io, text width=1.7cm] (in) {Input\\\scriptsize $(N,M,$ lớp, phòng$)$};
+\node[router, right=1.0cm of in, text width=2.2cm] (rt) {ROUTER\\\scriptsize định tuyến theo\\\scriptsize quy mô \& độ chặt};
+\node[tier, fill=cexact!10, draw=cexact, text=cexact!50!black, right=2.0cm of rt, yshift=1.9cm] (t1)
+  {\textbf{Exact}\\ CP-SAT\\[-1pt]\scriptsize tối ưu có chứng nhận};
+\node[tier, fill=cfast!10, draw=cfast, text=cfast!55!black, right=2.0cm of rt] (t2)
+  {\textbf{Heuristic}\\ Greedy $+$ Local Search\\[-1pt]\scriptsize mili-giây};
+\node[tier, fill=cscale!10, draw=cscale, text=cscale!55!black, right=2.0cm of rt, yshift=-1.9cm] (t3)
+  {\textbf{Metaheuristic}\\ Greedy $+$ ALNS\\[-1pt]\scriptsize chất lượng cao};
+\node[io, right=1.8cm of t2, text width=1.7cm] (out) {Output\\\scriptsize lịch xếp $+\,Q$};
+\node[seed, below=1.0cm of rt, text width=2.4cm] (gd) {Hạt giống \textbf{Greedy}\\\scriptsize (chung cho cả 3 tầng)};
+\draw[arr] (in) -- (rt);
+\draw[arr] (rt.east) -- (t1.west) node[lbl, pos=0.62, above, sloped] {nhỏ, cần tối ưu};
+\draw[arr] (rt.east) -- (t2.west) node[lbl, pos=0.5, above] {tức thời};
+\draw[arr] (rt.east) -- (t3.west) node[lbl, pos=0.62, below, sloped] {quy mô lớn};
+\draw[arr] (t1.east) -- (out.west);
+\draw[arr] (t2.east) -- (out.west);
+\draw[arr] (t3.east) -- (out.west);
+\draw[seedarr] (rt.south) -- (gd.north);
+\draw[seedarr] (gd) to[out=35,in=255] (t1.south);
+\draw[seedarr] (gd) to[out=10,in=260] (t2.south);
+\draw[seedarr] (gd) to[out=-10,in=250] (t3.south);
+\node[lbl, text=cseed, right=0.05cm of gd, yshift=-0.7cm] {\;mồi cả 3 tầng};
+\end{tikzpicture}
+\caption{Kiến trúc đa tầng \emph{Exact $\to$ Heuristic $\to$ Metaheuristic}. Bộ
+\textsc{Router} định tuyến theo quy mô và độ chặt tài nguyên; nghiệm Greedy (nét
+đứt tím) là hạt giống chung cho cả ba tầng.}
+\label{fig:pipeline}
+\end{figure}
+
+\noindent Báo cáo đi theo đúng luồng dữ liệu của hệ thống: cấu trúc dữ liệu \&
+trạng thái (Mục~\ref{sec:data}) $\to$ khởi tạo (Mục~\ref{sec:init}) $\to$ ba tầng
+giải (Mục~\ref{sec:exact},~\ref{sec:ls},~\ref{sec:alns}) $\to$ tinh chỉnh tham số
+(Mục~\ref{sec:tuning}) $\to$ thực nghiệm (Mục~\ref{sec:results}).
+
+\subsection{Hàm mục tiêu và ràng buộc}
+\label{sec:model}
+Cấu trúc thời gian: $D=5$ ngày $\times\ H=12$ tiết, cho không gian
+$\mathcal{T}=\{0,\dots,59\}$. Đầu vào: tập lớp $\mathcal{C}=\{1,\dots,N\}$ với mỗi
+lớp $i$ có $(t_i,g_i,s_i)$ (thời lượng, giáo viên, sĩ số); tập phòng
+$\mathcal{R}=\{1,\dots,M\}$ với sức chứa $c_v$.
+
+\paragraph{Miền vị trí hợp lệ.} Vì lớp không vắt chéo ngày, tập tiết bắt đầu hợp lệ
+của lớp thời lượng $t_i$ là
+\begin{equation}
+  \mathcal{S}(t_i) = \big\{\, d\cdot H + o \;\big|\; d\in\{0,\dots,D-1\},\;
+  o\in\{0,\dots,H-t_i\} \,\big\}.
+  \label{eq:allowed}
+\end{equation}
+Ràng buộc \emph{liên tục} và \emph{không xuyên ngày} được hấp thụ trọn vẹn vào miền
+này --- không cần bất đẳng thức tường minh.
+
+\paragraph{Biến quyết định, ràng buộc, mục tiêu.} Đặt $x_{i,r,u}=1$ nếu lớp $i$
+xếp vào phòng $r$ bắt đầu tại $u\in\mathcal{S}(t_i)$, và $a_i=\sum_{r,u}x_{i,r,u}$.
+\begin{align}
+  &\textstyle\sum_{r}\sum_{u\in\mathcal{S}(t_i)} x_{i,r,u} = a_i \le 1
+     && \forall i &&\text{(mỗi lớp tối đa một vị trí)}, \label{eq:c1}\\
+  &x_{i,r,u}=0 \ \text{ nếu } c_r < s_i && && \text{(sức chứa)}, \label{eq:c2}\\
+  &\textstyle\sum_{i}\sum_{u\le\tau<u+t_i} x_{i,r,u} \le 1
+     && \forall r,\tau &&\text{(xung đột phòng)}, \label{eq:c3}\\
+  &\textstyle\sum_{i:g_i=g}\sum_{r}\sum_{u\le\tau<u+t_i} x_{i,r,u} \le 1
+     && \forall g,\tau &&\text{(xung đột giáo viên)}. \label{eq:c4}
+\end{align}
+\begin{equation}
+  \boxed{\ \max\ Q = \sum_{i\in\mathcal{C}} a_i.\ }
+  \label{eq:obj}
+\end{equation}

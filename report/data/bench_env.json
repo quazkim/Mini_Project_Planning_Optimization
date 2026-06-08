@@ -1,0 +1,20 @@
+{
+  "platform": "macOS-26.3.1-arm64-arm-64bit",
+  "python": "3.10.20",
+  "processor": "arm",
+  "cpu_count": 11,
+  "ortools": "9.15.6755",
+  "time_limit_s": 30.0,
+  "seeds": [
+    1,
+    7,
+    13,
+    21,
+    42
+  ],
+  "reps": {
+    "small": 3,
+    "medium": 3,
+    "large": 2
+  }
+}

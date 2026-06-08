@@ -1,0 +1,26 @@
+{
+  "instance": "test09",
+  "N": 200,
+  "M": 5,
+  "iters": 500,
+  "destroy_final": {
+    "Random": 0.009,
+    "Worst-Time": 0.886,
+    "Related-Teacher": 0.105
+  },
+  "repair_final": {
+    "Greedy": 0.689,
+    "Regret-2": 0.169,
+    "First-Possible": 0.141
+  },
+  "destroy_start": {
+    "Random": 0.522,
+    "Worst-Time": 0.253,
+    "Related-Teacher": 0.225
+  },
+  "repair_start": {
+    "Greedy": 0.282,
+    "Regret-2": 0.225,
+    "First-Possible": 0.493
+  }
+}

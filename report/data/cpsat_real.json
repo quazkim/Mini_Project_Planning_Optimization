@@ -1,0 +1,41 @@
+[
+  {
+    "status": "FEASIBLE",
+    "elapsed": 20.32285189628601,
+    "objective": 196,
+    "bound": 197.0,
+    "gap": 1.0,
+    "nvars": 3074,
+    "greedy": 182,
+    "wall": 20.36415195465088,
+    "instance": "hustack01",
+    "N": 200,
+    "M": 10
+  },
+  {
+    "status": "FEASIBLE",
+    "elapsed": 20.097933053970337,
+    "objective": 410,
+    "bound": 418.0,
+    "gap": 8.0,
+    "nvars": 38868,
+    "greedy": 410,
+    "wall": 20.510854959487915,
+    "instance": "hustack02",
+    "N": 500,
+    "M": 50
+  },
+  {
+    "status": "FEASIBLE",
+    "elapsed": 20.098065853118896,
+    "objective": 961,
+    "bound": 1000.0,
+    "gap": 39.0,
+    "nvars": 60002,
+    "greedy": 959,
+    "wall": 20.930196046829224,
+    "instance": "test08",
+    "N": 1000,
+    "M": 50
+  }
+]

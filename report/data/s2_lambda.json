@@ -1,0 +1,22 @@
+{
+  "instance": "test09",
+  "N": 200,
+  "M": 5,
+  "results": {
+    "0.1": {
+      "final_mean": 128.2,
+      "final_std": 0.7483314773547882,
+      "greedy_start": 101
+    },
+    "0.5": {
+      "final_mean": 128.2,
+      "final_std": 0.4,
+      "greedy_start": 101
+    },
+    "0.9": {
+      "final_mean": 128.4,
+      "final_std": 0.8,
+      "greedy_start": 101
+    }
+  }
+}

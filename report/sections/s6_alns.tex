@@ -1,0 +1,197 @@
+% ===================== 6. ALNS =====================
+\section{Thuật toán Adaptive Large Neighborhood Search (ALNS)}
+\label{sec:alns}
+
+Tầng Metaheuristic phục vụ ngữ cảnh \emph{quy mô lớn, chạy theo lô}, nơi cần chất
+lượng cao và sẵn sàng đổi vài giây tính toán. ALNS hoạt động theo chu trình
+\emph{phá hủy \& tái tạo} (ruin \& recreate): mỗi vòng phá $\sim 15\%$ số lớp đang
+xếp rồi tái tạo bằng một cặp toán tử được chọn thích nghi, sau đó quyết định chấp
+nhận theo Simulated Annealing. Tổng quan ở Thuật toán~\ref{alg:alns}.
+
+\subsection{Ba toán tử Phá hủy (Random, Worst-Time, Related-Teacher)}
+Mỗi toán tử nhắm một dạng bế tắc khác nhau:
+\begin{itemize}
+  \item \opt{Random}: gỡ ngẫu nhiên $k$ lớp --- đa dạng hóa, tránh thiên kiến.
+  \item \opt{Worst-Time}: gỡ $k$ lớp \emph{thời lượng lớn nhất} --- giải phóng các
+  khối thời gian cồng kềnh, chiếm nhiều tài nguyên nhất.
+  \item \opt{Related-Teacher}: chọn giáo viên có lịch dày nhất rồi gỡ cụm lớp của
+  họ --- tập trung tháo gỡ điểm xung đột.
+\end{itemize}
+
+Hình~\ref{fig:destroy-ops} minh họa ba toán tử trên cùng một lịch hiện tại (khối
+$=$ lớp đang xếp; khối tô đỏ nét đứt $=$ lớp bị gỡ).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  font=\scriptsize,
+  blk/.style={draw, thick, minimum height=0.55cm, fill=black!8, inner sep=1pt},
+  rem/.style={blk, fill=cscale!22, draw=cscale, dashed, very thick, text=cscale},
+  t1/.style={blk, fill=cfast!18, draw=cfast!70},
+  t2/.style={blk, fill=cexact!16, draw=cexact!70},
+  t1r/.style={blk, fill=cfast!18, draw=cscale, dashed, very thick, text=cscale},
+  opcap/.style={font=\scriptsize\bfseries, align=center},
+]
+% ---------- (a) Random ----------
+\begin{scope}
+  \node[blk,minimum width=0.7cm] (a1) at (0,0){A};
+  \node[rem,minimum width=0.7cm, right=2pt of a1] (a2){B\,$\times$};
+  \node[blk,minimum width=0.7cm, right=2pt of a2] (a3){C};
+  \node[rem,minimum width=0.7cm, right=2pt of a3] (a4){D\,$\times$};
+  \node[blk,minimum width=0.7cm, right=2pt of a4] (a5){E};
+  \node[opcap] at (1.9,-0.75) {(a) \opt{Random}};
+  \node[font=\scriptsize] at (1.9,-1.15) {gỡ $k$ lớp bất kỳ};
+\end{scope}
+% ---------- (b) Worst-Time ----------
+\begin{scope}[xshift=5.5cm]
+  \node[blk,minimum width=0.5cm] (b1) at (0,0){};
+  \node[blk,minimum width=1.0cm, right=2pt of b1] (b2){};
+  \node[blk,minimum width=0.5cm, right=2pt of b2] (b3){};
+  \node[rem,minimum width=1.6cm, right=2pt of b3] (b4){dài\,$\times$};
+  \node[opcap] at (1.9,-0.75) {(b) \opt{Worst-Time}};
+  \node[font=\scriptsize] at (1.9,-1.15) {gỡ lớp thời lượng lớn nhất};
+\end{scope}
+% ---------- (c) Related-Teacher ----------
+\begin{scope}[xshift=11cm]
+  \node[t1r,minimum width=0.7cm] (c1) at (0,0){$g_1$};
+  \node[t2,minimum width=0.7cm, right=2pt of c1] (c2){$g_2$};
+  \node[t1r,minimum width=0.7cm, right=2pt of c2] (c3){$g_1$};
+  \node[t2,minimum width=0.7cm, right=2pt of c3] (c4){$g_2$};
+  \node[t1r,minimum width=0.7cm, right=2pt of c4] (c5){$g_1$};
+  \node[opcap] at (1.9,-0.75) {(c) \opt{Related-Teacher}};
+  \node[font=\scriptsize] at (1.9,-1.15) {gỡ cụm lớp của 1 giáo viên};
+\end{scope}
+\end{tikzpicture}
+\caption{Ba toán tử Phá hủy. \opt{Random} gỡ ngẫu nhiên; \opt{Worst-Time} gỡ khối
+thời lượng dài nhất; \opt{Related-Teacher} gỡ toàn bộ lớp của giáo viên dày lịch
+nhất ($g_1$).}
+\label{fig:destroy-ops}
+\end{figure}
+
+\subsection{Ba toán tử Sửa chữa (Greedy, Regret-2, First-Possible)}
+\begin{itemize}
+  \item \opt{Greedy}: chèn lại theo sĩ số rồi thời lượng giảm dần, mỗi lớp vào vị
+  trí trống đầu tiên.
+  \item \opt{Regret-2}: ưu tiên lớp ``hối tiếc'' cao --- lớp càng ít phòng khả thi
+  (đếm bằng \texttt{feasible\_room\_count}) thì điểm $1/\text{cnt}$ càng lớn, được
+  chèn trước để không bị kẹt về sau.
+  \item \opt{First-Possible}: xáo trộn ngẫu nhiên rồi chèn vào chỗ đầu tiên --- tạo
+  nhiễu cấu trúc.
+\end{itemize}
+
+Ba toán tử khác nhau ở \emph{thứ tự ưu tiên} các lớp chờ khi chèn lại
+(Hình~\ref{fig:repair-ops}); số trong vòng tròn là thứ tự chèn.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  font=\scriptsize,
+  blk/.style={draw, thick, minimum height=0.6cm, fill=black!8, inner sep=2pt},
+  hl/.style={blk, fill=accent!20, draw=accent, very thick},
+  ord/.style={circle, draw=accent, fill=accent!85, text=white, font=\tiny,
+              inner sep=0.6pt, minimum size=0.34cm},
+  opcap/.style={font=\scriptsize\bfseries, align=center},
+  sub/.style={font=\scriptsize, align=center},
+]
+% ---------- (a) Greedy ----------
+\begin{scope}
+  \node[blk,minimum width=1.0cm] (g1) at (0,0){$s{=}80$};
+  \node[blk,minimum width=1.0cm, right=4pt of g1] (g2){$s{=}50$};
+  \node[blk,minimum width=1.0cm, right=4pt of g2] (g3){$s{=}20$};
+  \node[ord, above=1pt of g1]{1}; \node[ord, above=1pt of g2]{2}; \node[ord, above=1pt of g3]{3};
+  \node[opcap] at (1.6,-0.7) {(a) \opt{Greedy}};
+  \node[sub] at (1.6,-1.1) {sĩ số giảm dần};
+\end{scope}
+% ---------- (b) Regret-2 ----------
+\begin{scope}[xshift=5.3cm]
+  \node[hl,minimum width=1.7cm] (rB) at (0,0){$u_B$: 1 phòng};
+  \node[blk,minimum width=1.7cm, right=4pt of rB] (rA){$u_A$: 3 phòng};
+  \node[ord, above=1pt of rB]{1}; \node[ord, above=1pt of rA]{2};
+  \node[opcap] at (1.95,-0.7) {(b) \opt{Regret-2}};
+  \node[sub] at (1.95,-1.1) {ít phòng khả thi $\to$ chèn trước};
+\end{scope}
+% ---------- (c) First-Possible ----------
+\begin{scope}[xshift=11.3cm]
+  \node[blk,minimum width=0.8cm] (f1) at (0,0){$u_1$};
+  \node[blk,minimum width=0.8cm, right=4pt of f1] (f2){$u_2$};
+  \node[blk,minimum width=0.8cm, right=4pt of f2] (f3){$u_3$};
+  \node[ord, above=1pt of f1]{2}; \node[ord, above=1pt of f2]{1}; \node[ord, above=1pt of f3]{3};
+  \node[opcap] at (1.45,-0.7) {(c) \opt{First-Possible}};
+  \node[sub] at (1.45,-1.1) {thứ tự ngẫu nhiên};
+\end{scope}
+\end{tikzpicture}
+\caption{Ba toán tử Sửa chữa khác nhau ở thứ tự chọn lớp chờ để chèn (số trong
+vòng tròn). \opt{Greedy} theo sĩ số giảm dần; \opt{Regret-2} ưu tiên lớp ít phòng
+khả thi nhất ($u_B$); \opt{First-Possible} theo thứ tự xáo trộn ngẫu nhiên. Cả ba
+đều đặt mỗi lớp vào vị trí trống đầu tiên tìm được.}
+\label{fig:repair-ops}
+\end{figure}
+
+\subsection{Cập nhật trọng số Adaptive Roulette-Wheel ($\pi_1,\pi_2,\pi_3$)}
+Mỗi toán tử mang trọng số $w_j$ (khởi tạo $1$); toán tử được bốc bằng bánh xe
+roulette với xác suất tỉ lệ trọng số:
+\begin{equation}
+  p_j = \frac{w_j}{\sum_\ell w_\ell}.
+  \label{eq:roulette}
+\end{equation}
+Sau mỗi vòng, toán tử vừa dùng nhận điểm thưởng $\pi$ theo mức đóng góp --- tạo
+nghiệm tốt nhất mới ($\pi_1{=}10$), cải thiện nghiệm hiện hành ($\pi_2{=}5$), được
+SA chấp nhận dù không cải thiện ($\pi_3{=}2$), bị bác ($0$) --- rồi trọng số cập
+nhật theo trung bình trượt mũ với hệ số học $\lambda$:
+\begin{equation}
+  w_j \leftarrow \lambda\,w_j + (1-\lambda)\,\pi.
+  \label{eq:update}
+\end{equation}
+
+\subsection{Tiêu chí chấp nhận bằng Luyện kim mô phỏng (Simulated Annealing)}
+Để thoát cực trị cục bộ, nghiệm lùi bước vẫn được chấp nhận với xác suất Boltzmann
+$\exp(-\Delta/T)$, với $\Delta=Q_\text{best}-Q_\text{new}\ge 0$ và nhiệt độ giảm
+dần $T\leftarrow\alpha T$ ($T_0{=}10,\ \alpha{=}0.98$). Đầu chạy ($T$ lớn) ưu tiên
+khám phá; cuối chạy ($T\to 0$) ưu tiên khai thác.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  >={Stealth[round]},
+  box/.style={draw, thick, rounded corners=3pt, align=center, minimum height=0.9cm, font=\small},
+  state/.style={box, fill=black!5, minimum width=2.0cm},
+  op/.style={box, fill=accent!10, draw=accent, minimum width=2.4cm},
+  dec/.style={box, diamond, aspect=2, fill=cscale!10, draw=cscale, inner sep=1pt, font=\scriptsize\bfseries, align=center},
+  lbl/.style={font=\scriptsize, align=center},
+  arr/.style={->, thick}
+]
+  \node[state] (s1) {Nghiệm hiện tại\\$s_\text{cur}$};
+  \node[op, right=1.1cm of s1] (ruin) {Phá hủy (Ruin)\\ \scriptsize gỡ $\sim 15\%$ lớp};
+  \node[op, right=0.9cm of ruin] (rec) {Sửa chữa (Recreate)\\ \scriptsize chèn lại cấu trúc};
+  \node[state, right=1.1cm of rec] (s2) {Ứng viên\\$s_\text{new}$};
+  \node[dec, below=1.25cm of s2] (sa) {SA\\Accept?};
+  \node[op, below=1.25cm of s1] (update) {Cập nhật trọng số\\ \scriptsize (Roulette, $\pi$)};
+
+  \draw[arr] (s1) -- (ruin);
+  \draw[arr] (ruin) -- node[lbl, above] {lớp bị gỡ} (rec);
+  \draw[arr] (rec) -- (s2);
+  \draw[arr] (s2) -- (sa);
+  \draw[arr] (sa) -- node[lbl, above, align=center]
+        {\textbf{Có:} nhận $s_\text{new}$\\\textbf{Không:} khôi phục $s_\text{best}$} (update);
+  \draw[arr] (update) -- node[lbl, left] {vòng lặp\\tiếp theo} (s1);
+\end{tikzpicture}
+\caption{Chu trình Phá hủy \& Sửa chữa (Ruin \& Recreate) của ALNS kết hợp đánh giá chấp nhận bằng Luyện kim mô phỏng (SA) và cập nhật trọng số toán tử (Adaptive).}
+\label{fig:alns-loop}
+\end{figure}
+
+\begin{algorithm}[H]
+\caption{ALNS = Ruin \& Recreate $+$ Adaptive $+$ Simulated Annealing}
+\label{alg:alns}
+\KwIn{hạt giống Greedy; $T_0,\alpha,\lambda,(\pi_1,\pi_2,\pi_3)$}
+$s_\text{best}\leftarrow s_\text{cur}\leftarrow$ Greedy; $T\leftarrow T_0$\;
+\For{mỗi vòng lặp (tới khi hết ngân sách hoặc xếp đủ $N$ lớp)}{
+  bốc cặp (Phá hủy, Sửa chữa) theo roulette~\eqref{eq:roulette}\;
+  phá $\lceil 0.15\,Q\rceil$ lớp; tái tạo $\Rightarrow s_\text{new}$\;
+  \uIf{$Q_\text{new}>Q_\text{best}$}{nhận; $s_\text{best}\leftarrow s_\text{new}$; $\pi\leftarrow\pi_1$\;}
+  \uElseIf{$Q_\text{new}>Q_\text{cur}$}{nhận; $\pi\leftarrow\pi_2$\;}
+  \uElseIf{$\text{rand}()<e^{-\Delta/T}$}{nhận (lùi bước); $\pi\leftarrow\pi_3$\;}
+  \Else{khôi phục $s_\text{best}$; $\pi\leftarrow 0$\;}
+  cập nhật trọng số~\eqref{eq:update}; \quad $T\leftarrow\alpha T$\;
+}
+\Return $s_\text{best}$\;
+\end{algorithm}

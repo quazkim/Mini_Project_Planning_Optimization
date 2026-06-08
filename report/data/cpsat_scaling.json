@@ -1,0 +1,112 @@
+[
+  {
+    "status": "OPTIMAL",
+    "elapsed": 0.037476301193237305,
+    "objective": 10,
+    "bound": 10.0,
+    "gap": 0.0,
+    "nvars": 152,
+    "greedy": 10,
+    "N": 10
+  },
+  {
+    "status": "OPTIMAL",
+    "elapsed": 0.01275014877319336,
+    "objective": 25,
+    "bound": 25.0,
+    "gap": 0.0,
+    "nvars": 339,
+    "greedy": 25,
+    "N": 25
+  },
+  {
+    "status": "OPTIMAL",
+    "elapsed": 0.041457176208496094,
+    "objective": 48,
+    "bound": 48.0,
+    "gap": 0.0,
+    "nvars": 782,
+    "greedy": 48,
+    "N": 50
+  },
+  {
+    "status": "OPTIMAL",
+    "elapsed": 0.10463500022888184,
+    "objective": 69,
+    "bound": 69.0,
+    "gap": 0.0,
+    "nvars": 1149,
+    "greedy": 68,
+    "N": 75
+  },
+  {
+    "status": "OPTIMAL",
+    "elapsed": 0.19608092308044434,
+    "objective": 98,
+    "bound": 98.0,
+    "gap": 0.0,
+    "nvars": 1394,
+    "greedy": 98,
+    "N": 100
+  },
+  {
+    "status": "OPTIMAL",
+    "elapsed": 0.2580139636993408,
+    "objective": 146,
+    "bound": 146.0,
+    "gap": 0.0,
+    "nvars": 2172,
+    "greedy": 145,
+    "N": 150
+  },
+  {
+    "status": "OPTIMAL",
+    "elapsed": 3.8262009620666504,
+    "objective": 198,
+    "bound": 198.0,
+    "gap": 0.0,
+    "nvars": 2612,
+    "greedy": 183,
+    "N": 200
+  },
+  {
+    "status": "OPTIMAL",
+    "elapsed": 0.629967212677002,
+    "objective": 232,
+    "bound": 232.0,
+    "gap": 0.0,
+    "nvars": 4322,
+    "greedy": 223,
+    "N": 300
+  },
+  {
+    "status": "OPTIMAL",
+    "elapsed": 1.077578067779541,
+    "objective": 255,
+    "bound": 255.0,
+    "gap": 0.0,
+    "nvars": 6110,
+    "greedy": 250,
+    "N": 400
+  },
+  {
+    "status": "OPTIMAL",
+    "elapsed": 1.6629278659820557,
+    "objective": 294,
+    "bound": 294.0,
+    "gap": 0.0,
+    "nvars": 6570,
+    "greedy": 284,
+    "N": 500
+  },
+  {
+    "status": "OPTIMAL",
+    "elapsed": 2.5618720054626465,
+    "objective": 306,
+    "bound": 306.0,
+    "gap": 0.0,
+    "nvars": 8598,
+    "greedy": 298,
+    "N": 600
+  }
+]

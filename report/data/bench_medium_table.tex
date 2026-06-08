@@ -1,0 +1,20 @@
+\begin{table}[H]
+\centering\small
+\caption{Nhóm trung bình ($N\approx 100$--$200$): trộn instance dư tài nguyên và nghẽn phòng ($M$ nhỏ). Cùng ngân sách $30$s.}
+\label{tab:bench-medium}
+\begin{tabular}{lrr r l ll l r}
+\toprule
+\multirow{2}{*}{Instance} & \multirow{2}{*}{$N$} & \multirow{2}{*}{$M$}
+& \multirow{2}{*}{Greedy}
+& \multicolumn{1}{c}{LS} & \multicolumn{2}{c}{ALNS} & \multirow{2}{*}{CP-SAT}
+& \multirow{2}{*}{$\Delta$(ALNS$-$Gr)} \\
+\cmidrule(lr){5-5}\cmidrule(lr){6-7}
+& & & & min/avg/max & min/avg/max & std & & \\
+\midrule
+\texttt{test05} & 100 & 15 & 100 & 100/100.0/100 & 100/100.0/100 & 0.00 & 100 (OPTI) & +0.0 \\
+\texttt{comp11} & 162 & 5 & 147 & 162/162.0/162 & 162/162.0/162 & 0.00 & 162 (OPTI) & +15.0 \\
+\texttt{test09} & 200 & 5 & 125 & 127/127.0/127 & 127/128.3/129 & 0.94 & 131 (OPTI) & +3.3 \\
+\texttt{hustack01} & 200 & 10 & 182 & 184/184.3/185 & 193/193.7/194 & 0.47 & 196 (FEAS) & +11.7 \\
+\bottomrule
+\end{tabular}
+\end{table}

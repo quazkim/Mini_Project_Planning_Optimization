@@ -1,0 +1,15 @@
+\begin{table}[ht]
+\centering\small
+\caption{CP-SAT trên dữ liệu thực nghẽn tài nguyên (time-limit $20$s). Khi $N$
+lớn, solver chỉ đạt \textsc{feasible} với gap dương: không kịp chứng minh tối ưu.}
+\label{tab:cpsat-real}
+\begin{tabular}{lrrrrlrrrr}
+\toprule
+Instance & $N$ & $M$ & Số biến & Wall (s) & Trạng thái & Greedy & $Q$ & Cận trên & Gap \\
+\midrule
+\texttt{hustack01} & 200 & 10 & 3074 & 20.36 & FEASIBLE & 182 & 196 & 197 & 1 \\
+\texttt{hustack02} & 500 & 50 & 38868 & 20.51 & FEASIBLE & 410 & 410 & 418 & 8 \\
+\texttt{test08} & 1000 & 50 & 60002 & 20.93 & FEASIBLE & 959 & 961 & 1000 & 39 \\
+\bottomrule
+\end{tabular}
+\end{table}

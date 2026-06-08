@@ -1,0 +1,95 @@
+% ===================== 5. LOCAL SEARCH — EJECTION CHAIN =====================
+\section{Local Search (LS) với cơ chế Ejection Chain}
+\label{sec:ls}
+
+Tầng Heuristic phục vụ ngữ cảnh \emph{phản hồi nhanh}: cải thiện nghiệm Greedy
+thường trong mili-giây (tới vài giây trên instance lớn nghẽn), đủ nhanh cho công
+cụ chỉnh lịch tương tác và nhanh hơn ALNS nhiều bậc.
+
+\subsection{Tư duy thuật toán: phá vỡ bế tắc của Greedy}
+Greedy phụ thuộc thứ tự xử lý nên thường để sót những lớp bị \emph{một} lớp khác
+chặn chỗ: lớp $u$ không còn vị trí nào trống chỉ vì lớp $v$ đang chiếm đúng khe nó
+cần. Local Search nhắm chính vào thế bế tắc này: thay vì chấp nhận bỏ $u$, nó thử
+\emph{tái sắp xếp} để giải phóng chỗ.
+
+\subsection{Cơ chế chuỗi thay thế (Giải phóng -- Chèn -- Tái định vị)}
+Mỗi vòng chọn ngẫu nhiên một lớp chờ $u$ và áp một toán tử lân cận duy nhất ---
+\emph{Ejection Chain} (Thuật toán~\ref{alg:ls}): chèn trực tiếp nếu còn chỗ; nếu
+không thì thực hiện ba bước:
+\begin{itemize}
+  \item \textbf{Giải phóng lớp $v$:} xóa bỏ lớp $v$ đang xếp khỏi vị trí hiện tại
+  để giải phóng không gian thời gian/phòng học;
+  \item \textbf{Chèn lớp $u$:} đặt lớp $u$ vào chỗ vừa trống (toán tử Insertion
+  chuẩn);
+  \item \textbf{Tái định vị lớp $v$:} tìm một tọa độ không gian--thời gian mới phù
+  hợp cho lớp $v$ vừa bị đẩy ra.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  node distance=0.8cm and 1.5cm,
+  >={Stealth[round]},
+  class/.style={draw, thick, rounded corners=2pt, align=center, minimum height=0.7cm, minimum width=1.5cm},
+  u/.style={class, fill=accent!15, draw=accent},
+  v/.style={class, fill=cfast!15, draw=cfast},
+  slot/.style={draw, dashed, thick, rounded corners=2pt, minimum height=0.7cm, minimum width=1.5cm, fill=black!5},
+  lbl/.style={font=\scriptsize\itshape, align=center},
+  arr/.style={->, thick, shorten >=2pt, shorten <=2pt}
+]
+
+  % Lớp U
+  \node[u] (u) {Lớp chờ $u$};
+  
+  % Slot 1 (đang bị V chiếm)
+  \node[slot, right=2cm of u] (s1) {};
+  \node[v] (v) at (s1) {Lớp $v$};
+  \node[lbl, above=0.1cm of s1] {Chỗ duy nhất cho $u$\\ (đang bị chiếm)};
+
+  % Slot 2 (trống)
+  \node[slot, right=2cm of s1] (s2) {Trống};
+  \node[lbl, above=0.1cm of s2] {Chỗ mới cho $v$};
+
+  % Các mũi tên
+  \draw[arr, accent, out=20, in=160] (u) to node[lbl, above] {1. Chèn $u$} (s1);
+  \draw[arr, cscale, out=-20, in=200] (v.south) to node[lbl, below] {2. Giải phóng $v$} (s2.south west);
+  \draw[arr, cfast, out=20, in=160] (v.north) to node[lbl, above] {3. Tái định vị $v$} (s2.north west);
+
+\end{tikzpicture}
+\caption{Cơ chế Ejection Chain: Lớp $u$ cần chỗ, hệ thống \emph{giải phóng} lớp $v$ đang chiếm chỗ đó, rồi \emph{tái định vị} $v$ vào một chỗ trống khác.}
+\label{fig:ejection-chain}
+\end{figure}
+
+\begin{algorithm}[H]
+\caption{Local Search bằng Ejection Chain}
+\label{alg:ls}
+\KwIn{nghiệm Greedy; tập lớp chưa xếp $U$}
+\For{mỗi bước lặp \textbf{và} $U\neq\varnothing$ \textbf{và} chưa hết ngân sách}{
+  chọn ngẫu nhiên lớp chờ $u\in U$\;
+  \uIf{chèn trực tiếp $u$ được}{chèn $u$; cập nhật nghiệm tốt nhất\;}
+  \Else{
+    giải phóng một lớp $v$ đang xếp; chèn $u$ vào chỗ vừa trống\;
+    \uIf{tìm được chỗ mới cho $v$}{tái định vị $v$ (số lớp không đổi, cấu trúc mới)\;}
+    \uElseIf{$t_u < t_v$}{giữ $u$ (tốn ít tiết hơn $\Rightarrow$ lợi về sau)\;}
+    \Else{hoàn tác: trả $v$ về chỗ cũ\;}
+  }
+}
+\Return nghiệm tốt nhất đã lưu\;
+\end{algorithm}
+
+\subsection{Đánh giá chênh lệch và điều kiện chấp nhận (First Improvement)}
+LS theo chiến lược \emph{First Improvement}: chấp nhận ngay nước đi đầu tiên
+\emph{có lợi} thay vì duyệt toàn bộ lân cận tìm nước tốt nhất --- ưu tiên tốc độ.
+Tiêu chí ``có lợi'' rất gọn: nếu tái định vị được $v$ thì giữ (Q không giảm, cấu
+trúc đổi, mở cơ hội mới); nếu không thì chỉ giữ $u$ khi $t_u<t_v$ (đổi một lớp dài
+lấy một lớp ngắn, giải phóng tài nguyên ròng), ngược lại hoàn tác. Nhờ luôn lưu
+\emph{nghiệm tốt nhất} qua \texttt{snapshot}, số lớp xếp được \emph{không bao giờ
+giảm}.
+
+\subsection{Giới hạn của thuật toán (Hiệu ứng Plateau)}
+Ejection Chain chỉ thay đổi \emph{cục bộ} (đổi chỗ từng cặp lớp). Khi mọi hoán đổi
+đơn lẻ đều không mở thêm chỗ, lời giải mắc kẹt trên một \emph{cao nguyên}: nó không
+thể tạo biến đổi vĩ mô (ví dụ tái tổ chức toàn bộ lịch của một giáo viên quá tải).
+Đây không phải lỗi cài đặt mà là \emph{giới hạn bản chất} của tìm kiếm cục bộ với
+một toán tử --- và là động lực trực tiếp cho ALNS ở Mục~\ref{sec:alns}, nơi cơ chế
+phá hủy quy mô lớn cho phép nhảy ra khỏi cao nguyên.

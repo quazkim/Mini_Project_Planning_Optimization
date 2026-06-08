@@ -1,0 +1,84 @@
+% ===================== 3. KHỞI TẠO LỜI GIẢI =====================
+\section{Chiến lược khởi tạo lời giải ban đầu}
+\label{sec:init}
+
+Greedy tạo nghiệm khởi đầu \emph{hạt giống} dùng chung cho cả ba tầng. Mục tiêu:
+nhanh, hợp lệ, và đủ tốt để các tầng sau chỉ cần cải thiện.
+
+\subsection{Sắp xếp ưu tiên}
+Thứ tự xử lý quyết định chất lượng Greedy, theo hai tiêu chí:
+\begin{itemize}
+  \item \textbf{Thứ tự lớp:} sắp theo \emph{thời lượng $t$ tăng dần}, rồi \emph{sĩ
+  số $s$ tăng dần} --- ưu tiên lớp \emph{ngắn và ít sinh viên} trước. Lớp ngắn linh
+  hoạt, dễ lấp vào các khe thời gian nhỏ, nên xếp sớm giúp giữ lại các khối thời
+  gian dài liền mạch cho những lớp khó hơn về sau.
+  \item \textbf{Thứ tự phòng (best-fit):} duyệt phòng theo \emph{sức chứa tăng dần}
+  --- luôn thử phòng \emph{vừa đủ} chứa trước, để dành các phòng lớn cho những lớp
+  đông sinh viên thực sự cần đến chúng, tránh lãng phí tài nguyên khan hiếm.
+\end{itemize}
+
+\subsection{Greedy: First-feasible insertion}
+Với mỗi lớp theo thứ tự ưu tiên, duyệt tiết bắt đầu hợp lệ $s_0\in\mathcal{S}(t_i)$
+(vòng ngoài) rồi phòng theo sức chứa tăng dần (vòng trong); kiểm tra giáo viên rồi
+phòng có rảnh cả khối $t_i$ tiết không, và lấy cặp $(\text{tiết},\text{phòng})$
+hợp lệ \emph{đầu tiên} để gán luôn. Chiến lược ``first-feasible'' (thay vì tìm vị
+trí tối ưu) giữ chi phí ở mức thấp nhất --- đây là lý do Greedy chạy trong
+\emph{micro-giây} ngay cả với $N=1000$.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  font=\scriptsize,
+  cls/.style={draw, thick, fill=cfast!15, draw=cfast!70, minimum height=0.55cm, inner sep=2pt},
+  room/.style={draw, thick, minimum width=1.5cm, minimum height=0.7cm, fill=black!6},
+  chosen/.style={room, fill=cexact!18, draw=cexact, very thick},
+  dimmed/.style={room, fill=black!3, draw=gray!55, text=gray},
+  hd/.style={font=\small\bfseries, anchor=west},
+  lcap/.style={font=\tiny, align=center},
+  arr/.style={->, thick},
+]
+% ---------- Bước 1: hàng đợi đã sắp ----------
+\node[hd] at (0,2.25) {\textcolor{accent}{1.} Sắp ưu tiên: $t\uparrow$, rồi $s\uparrow$};
+\node[cls, minimum width=0.5cm] (q1) at (0.55,0.7) {};
+\node[cls, minimum width=0.5cm, right=4pt of q1] (q2) {};
+\node[cls, minimum width=1.0cm, right=4pt of q2] (q3) {};
+\node[cls, minimum width=1.6cm, right=4pt of q3] (q4) {};
+\node[lcap, below=1pt of q1] {$t{=}1$\\$s{=}20$};
+\node[lcap, below=1pt of q2] {$t{=}1$\\$s{=}40$};
+\node[lcap, below=1pt of q3] {$t{=}2$\\$s{=}30$};
+\node[lcap, below=1pt of q4] {$t{=}3$\\$s{=}60$};
+\draw[arr] ($(q1.north west)+(0,0.3)$) -- ($(q4.north east)+(0,0.3)$)
+  node[midway, above, font=\tiny\itshape] {thứ tự xử lý (ngắn \& nhỏ trước)};
+
+% ---------- Bước 2: best-fit phòng ----------
+\node[hd] at (0,-1.15) {\textcolor{accent}{2.} Best-fit: phòng vừa đủ chứa trước};
+\node[cls, minimum width=1.0cm] (cc) at (0.7,-2.2) {$s{=}30$};
+\node[chosen, right=1.1cm of cc] (ra) {$c{=}40$};
+\node[room, right=5pt of ra] (rb) {$c{=}80$};
+\node[dimmed, right=5pt of rb] (rc) {$c{=}200$};
+\draw[arr, cexact, very thick] (cc) -- (ra) node[midway, above, font=\tiny] {chọn};
+\node[lcap, text=cexact!60!black, below=1pt of ra] {vừa đủ ($\ge 30$)};
+\node[lcap, text=gray, below=1pt of rc] {để dành lớp đông};
+\node[lcap, right=0.5cm of rc, text width=2.6cm, align=left] {\itshape Phòng sắp theo $c\uparrow$};
+\end{tikzpicture}
+\caption{Chiến lược khởi tạo Greedy. \textbf{(1)} Lớp được xử lý theo thứ tự
+\emph{thời lượng tăng, sĩ số tăng} (ngắn \& ít SV trước). \textbf{(2)} Với mỗi lớp,
+quét tiết bắt đầu (vòng ngoài) rồi phòng theo \emph{sức chứa tăng dần} và chọn phòng
+\emph{vừa đủ} chứa đầu tiên (best-fit, first-feasible) --- để dành phòng lớn cho lớp
+đông. Quá trình lặp lại đến khi không xếp thêm được lớp nào.}
+\label{fig:greedy-init}
+\end{figure}
+
+\subsection{Lặp gán đến điểm dừng}
+\label{sec:repair}
+Greedy không gán một lần rồi dừng: nó \emph{lặp lại} các lượt quét cho đến khi một
+lượt không xếp thêm được lớp nào (điểm dừng). Cơ chế lặp này gắn liền với Local
+Search ở Mục~\ref{sec:ls}: sau mỗi lần Ejection Chain tái sắp xếp và giải phóng
+chỗ, một lượt Greedy mới có thể tận dụng để nhồi thêm lớp.
+
+\begin{remark}
+Greedy không cố tối ưu --- nó cố \emph{nhanh và hợp lệ}. Chính vì còn dư địa cải
+thiện (đặc biệt trên dữ liệu nghẽn), ba tầng phía sau mới có việc để làm; và vì cả
+ba cùng xuất phát từ một mốc Greedy, mọi so sánh ở Mục~\ref{sec:results} đều quy về
+cùng một điểm tham chiếu.
+\end{remark}

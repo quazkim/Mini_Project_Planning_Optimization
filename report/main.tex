@@ -1,0 +1,208 @@
+% =====================================================================
+%  BÁO CÁO MINI-PROJECT — TỐI ƯU LẬP KẾ HOẠCH
+%  Đánh giá các phương pháp giải chính xác và metaheuristic
+%  cho bài toán xếp thời khóa biểu.
+%  Góc nhìn: NHÀ THIẾT KẾ GIẢI PHÁP (vấn đề -> lựa chọn -> đánh đổi -> bằng chứng).
+%  Biên dịch: tectonic main.tex   (XeTeX, hỗ trợ Unicode tiếng Việt)
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\usepackage{geometry}
+\geometry{margin=2.4cm}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{graphicx}
+\usepackage{float}            % cho [H]: ảnh đặt ĐÚNG vị trí, không trôi
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,shapes.geometric,fit,backgrounds,calc}
+\usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage{multirow}
+\usepackage{tocloft}
+% Tiêu đề mục lục: "Mục lục", căn giữa.
+\renewcommand{\contentsname}{Mục lục}
+\renewcommand{\cfttoctitlefont}{\hfill\color{accent}\Large\bfseries}
+\renewcommand{\cftaftertoctitle}{\hfill}
+
+\captionsetup{font=small,labelfont=bf}
+\setlist{itemsep=2pt,topsep=3pt}
+
+\definecolor{accent}{HTML}{1F4E79}
+\definecolor{soft}{HTML}{EAF0F7}
+\definecolor{cexact}{HTML}{2E7D32}
+\definecolor{cfast}{HTML}{1565C0}
+\definecolor{cscale}{HTML}{C62828}
+\definecolor{cseed}{HTML}{6A1B9A}
+\titleformat{\section}{\color{accent}\Large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\color{accent}\large\bfseries}{\thesubsection}{0.5em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\small Xếp thời khóa biểu — Hệ giải đa tầng}
+\lhead{\small Mini-project Tối ưu lập kế hoạch}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\newcommand{\opt}[1]{\textsc{#1}}
+\newtheorem{remark}{Nhận xét}
+
+% Khối "4 lăng kính thiết kế" tái sử dụng ở mỗi tầng.
+\newcommand{\lens}[1]{\smallskip\noindent\textcolor{accent}{$\blacktriangleright$ \textbf{#1}}\quad}
+
+\begin{document}
+
+% --------------------------- TRANG BÌA ---------------------------
+\begin{titlepage}
+\centering
+% khung viền quanh trang
+\begin{tikzpicture}[remember picture, overlay]
+  \draw[line width=0.9pt]
+    ($(current page.north west)+(1.4cm,-1.4cm)$)
+    rectangle
+    ($(current page.south east)+(-1.4cm,1.4cm)$);
+\end{tikzpicture}
+
+\vspace*{0.6cm}
+{\large\bfseries ĐẠI HỌC BÁCH KHOA HÀ NỘI}\\[3pt]
+{\large\bfseries TRƯỜNG CÔNG NGHỆ THÔNG TIN VÀ TRUYỀN THÔNG}\\[6pt]
+{\large\rule{2.2cm}{0.5pt}\;$*$\;\rule{2.2cm}{0.5pt}}\\[1.0cm]
+
+% logo (tự nạp figures/logo_bk.png nếu có, ngược lại hiện ô giữ chỗ)
+\IfFileExists{figures/logo_bk.png}
+  {\includegraphics[width=3.2cm]{figures/logo_bk.png}}
+  {\fbox{\parbox[c][2.8cm][c]{2.8cm}{\centering\small LOGO\\ĐHBK\\\scriptsize(thêm \texttt{figures/}\\\texttt{logo\_bk.png})}}}\\[0.9cm]
+
+{\Huge\bfseries MINI PROJECT}\\[0.45cm]
+{\Large TỐI ƯU LẬP KẾ HOẠCH}\\[0.35cm]
+{\color{accent}\LARGE\bfseries Thiết kế hệ giải đa tầng\\[2pt]
+cho bài toán xếp thời khóa biểu}\\[1.2cm]
+
+% khối thông tin (căn giữa trang)
+{\large
+\textbf{Nhóm:} 13\\[3pt]
+\textbf{Mã lớp học:} 168497\\[3pt]
+\textbf{Giảng viên hướng dẫn:} Nguyễn Văn Sơn\\[3pt]
+\textbf{Danh sách sinh viên thực hiện:}\\[8pt]}
+
+{\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|c|l|c|}
+\hline
+\textbf{STT} & \textbf{Họ tên} & \textbf{Mã sinh viên} \\
+\hline
+1 & Kim Anh Quân & 20232249 \\
+\hline
+2 & Đỗ Xuân Hoàng & 20235084 \\
+\hline
+3 & Nguyễn Văn Phú Thái & 20235214 \\
+\hline
+4 & Lâm Huy Vũ & 20225117 \\
+\hline
+\end{tabular}}
+
+\vfill
+{\large\bfseries\itshape Hà Nội, ngày 8 tháng 6 năm 2026}
+\end{titlepage}
+
+% --------------------------- PHÂN CHIA CÔNG VIỆC ---------------------------
+\section*{Bảng phân chia công việc trong nhóm}
+\addcontentsline{toc}{section}{Bảng phân chia công việc trong nhóm}
+
+\renewcommand{\arraystretch}{1.45}
+\noindent
+\begin{tabular}{|p{3.0cm}|>{\centering\arraybackslash}p{1.9cm}|p{8.4cm}|}
+\hline
+\textbf{Họ và tên} & \textbf{MSSV} & \multicolumn{1}{c|}{\textbf{Nhiệm vụ đảm nhiệm trong dự án}} \\
+\hline
+Kim Anh Quân \newline \textit{(Leader)} & 20232249 &
+\begin{itemize}[leftmargin=1.3em, itemsep=2.5pt, topsep=2pt, parsep=0pt]
+  \item Thiết kế kiến trúc tổng thể (pipeline đa tầng), điều phối tiến độ và phân
+  công nhiệm vụ cho các thành viên.
+  \item Nghiên cứu, cài đặt và tinh chỉnh metaheuristic \textbf{ALNS} (phá hủy --
+  tái tạo thích nghi, Simulated Annealing).
+  \item Thiết kế và thực thi quy trình thực nghiệm \textbf{benchmark} theo giao
+  thức đánh giá công bằng.
+  \item Tổng hợp, biên tập \textbf{báo cáo} và xây dựng \textbf{slide} thuyết trình.
+\end{itemize} \\
+\hline
+Nguyễn Văn Phú Thái & 20235214 &
+\begin{itemize}[leftmargin=1.3em, itemsep=2.5pt, topsep=2pt, parsep=0pt]
+  \item Nghiên cứu và cài đặt thuật toán khởi tạo \textbf{Greedy} cùng tối ưu cục
+  bộ \textbf{Local Search} (Ejection Chain).
+  \item Thu thập, chuyển đổi và sinh \textbf{bộ dữ liệu} thử nghiệm cho hệ thống.
+\end{itemize} \\
+\hline
+Đỗ Xuân Hoàng & 20235084 &
+\multirow{2}{8.4cm}{%
+\begin{itemize}[leftmargin=1.3em, itemsep=2.5pt, topsep=2pt, parsep=0pt]
+  \item Đồng nghiên cứu, cài đặt bộ giải chính xác \textbf{CP-SAT}
+  (Interval $+$ \textsc{NoOverlap}, OR-Tools).
+  \item Tích hợp \textbf{warm-start} từ Greedy; đánh giá giới hạn co giãn của
+  phương pháp chính xác.
+\end{itemize}} \\
+\cline{1-2}
+Lâm Huy Vũ\rule[-1.35cm]{0pt}{0.3cm} & 20225117 & \\
+\hline
+\end{tabular}
+
+\newpage
+
+\tableofcontents
+\newpage
+
+% --------------------------- ABSTRACT ---------------------------
+\section*{Tóm tắt báo cáo (Abstract)}
+\addcontentsline{toc}{section}{Tóm tắt báo cáo (Abstract)}
+
+\noindent\textbf{Luận điểm thiết kế.} Bài toán xếp thời khóa biểu là NP-khó: không
+tồn tại một thuật toán đơn lẻ vừa \emph{đảm bảo tối ưu}, vừa \emph{phản hồi tức
+thời}, vừa \emph{co giãn} tới quy mô toàn trường. Thay vì cố ép một thuật toán làm
+mọi việc, báo cáo này \emph{thiết kế một hệ giải đa tầng} và lập luận cho từng
+quyết định kiến trúc bằng số liệu thực nghiệm.
+
+\medskip\noindent\textbf{Phát hiện dẫn dắt.} Qua đo đạc, chúng tôi chỉ ra nguồn độ
+khó thực sự \emph{không phải kích thước $N$} mà là \emph{độ chặt tài nguyên}: bộ
+giải chính xác CP-SAT giải tối ưu dữ liệu ``thưa'' tới tận $N=600$, nhưng trên dữ
+liệu thực ``nghẽn'' tài nguyên chỉ đạt nghiệm khả thi (còn khoảng cách cận) ngay từ
+$N=200$. Phát hiện này quyết định cách định tuyến công cụ.
+
+\medskip\noindent\textbf{Kiến trúc đề xuất.} Một \emph{bộ định tuyến} đẩy bài toán
+vào một trong ba tầng, tất cả cùng dùng nghiệm Tham lam (Greedy) làm hạt giống:
+\begin{enumerate}[label=\arabic*.,leftmargin=*]
+  \item \textbf{Tầng chính xác (CP-SAT):} cho nghiệm tối ưu có chứng nhận ở quy mô
+  nhỏ --- đóng vai trò \emph{thước đo vàng}.
+  \item \textbf{Tầng tức thời (Local Search):} cải thiện cục bộ trong mili-giây
+  cho ứng dụng tương tác.
+  \item \textbf{Tầng co giãn (ALNS):} phá hủy--tái tạo thích nghi để khai phá toàn
+  cục cho hệ thống lớn.
+\end{enumerate}
+
+\medskip\noindent\textbf{Cam kết trung thực.} Mọi hệ số ($T,\alpha,\lambda$) đều
+được biện minh bằng đồ thị độ nhạy; benchmark được chạy theo \emph{giao thức công
+bằng} (cùng ngân sách thời gian, seed cố định); toàn bộ số liệu sinh tự động từ
+chính mã nguồn được phân tích, đảm bảo tái lập.
+
+% --------------------------- NỘI DUNG ---------------------------
+\input{sections/s1_intro.tex}
+\input{sections/s2_data.tex}
+\input{sections/s3_init.tex}
+\input{sections/s4_exact.tex}
+\input{sections/s5_ls.tex}
+\input{sections/s6_alns.tex}
+\input{sections/s7_tuning.tex}
+\input{sections/s8_results.tex}
+\input{sections/s9_conclusion.tex}
+
+\input{sections/references.tex}
+
+\end{document}

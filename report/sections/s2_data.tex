@@ -1,0 +1,107 @@
+% ===================== 2. CẤU TRÚC DỮ LIỆU & TRẠNG THÁI =====================
+\section{Cấu trúc dữ liệu và quản lý trạng thái (State Representation)}
+\label{sec:data}
+
+Hiệu năng của cả ba tầng phụ thuộc vào việc \emph{kiểm tra hợp lệ} và \emph{cập
+nhật} một phép gán phải thật nhanh, vì các thuật toán xấp xỉ thực hiện hàng triệu
+thao tác này. Mục này trình bày biểu diễn dữ liệu được thiết kế cho mục tiêu đó.
+
+\subsection{Biểu diễn đối tượng (ClassDTO, RoomDTO)}
+Hai đối tượng dữ liệu thuần (DTO) tách \emph{thuộc tính đầu vào} khỏi \emph{trạng
+thái lời giải}:
+\begin{itemize}
+  \item \texttt{ClassDTO}: bất biến $(t_i,g_i,s_i)$ cộng phần trạng thái thay đổi
+  theo lời giải --- \texttt{assigned\_slot} (tiết bắt đầu, 1-based), \texttt{assigned\_room},
+  \texttt{is\_assigned}. Nhờ tách bạch này, mọi thuật toán dùng \emph{chung} một
+  biểu diễn lớp; chỉ phần trạng thái bị ghi đè khi gán/gỡ.
+  \item \texttt{RoomDTO}: định danh phòng và sức chứa $c_v$.
+\end{itemize}
+Các mảng \texttt{classes[\,]}, \texttt{rooms[\,]} dùng chỉ số \emph{1-based} (phần
+tử $0$ để trống) để khớp định danh lớp/phòng trong đề và định dạng xuất.
+
+\subsection{Ma trận trạng thái thời gian (room\_busy, teacher\_busy)}
+Trái tim của lớp \texttt{ScheduleState} là hai ma trận bận theo thời gian:
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\texttt{room\_busy[$r$][$\tau$]} & phòng $r$ có bị chiếm tại tiết $\tau$ không \\
+\texttt{teacher\_busy[$g$][$\tau$]} & giáo viên $g$ có bận tại tiết $\tau$ không \\
+\bottomrule
+\end{tabular}
+\end{center}
+Đây là hiện thực trực tiếp của hai họ ràng buộc xung đột~\eqref{eq:c3}--\eqref{eq:c4}:
+một phép gán hợp lệ tương đương với việc cả khối $t_i$ tiết của lớp đều \emph{rảnh}
+trên cả hai ma trận. \texttt{teacher\_busy} dùng \texttt{dict} (chỉ sinh hàng cho
+giáo viên thực sự xuất hiện) để tiết kiệm bộ nhớ khi mã giáo viên thưa.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  cell/.style={draw, minimum size=0.55cm},
+  busy/.style={cell, fill=accent!40},
+  free/.style={cell, fill=white},
+  target/.style={cell, fill=cfast!30, draw=cfast, very thick},
+  rowlbl/.style={font=\scriptsize, anchor=east},
+  collbl/.style={font=\scriptsize, anchor=south},
+  tcol/.style={font=\scriptsize\bfseries, anchor=south, text=cfast!75!black},
+  gtitle/.style={font=\small\bfseries, anchor=south}
+]
+  % --- annotation chung (đặt trên cùng, không đè tiêu đề) ---
+  \node[font=\scriptsize\itshape, text=cfast!75!black, align=center] at (3.6,1.75)
+    {Khối ứng viên $t_c{=}3$ tiết: cần cùng \emph{trống} tại $\tau_2,\tau_3,\tau_4$ trên \textbf{cả hai} ma trận};
+
+  % --- room_busy ---
+  \node[gtitle] at (1.375,0.95) {\texttt{room\_busy}};
+  \foreach \x in {0,1,5} {\node[collbl] at (\x*0.55,0.16){$\tau_{\x}$};}
+  \foreach \x in {2,3,4} {\node[tcol] at (\x*0.55,0.16){$\tau_{\x}$};}
+  \node[rowlbl] at (-0.35,-0.275){$r_1$};
+  \node[rowlbl] at (-0.35,-0.825){$r_2$};
+  \node[rowlbl] at (-0.35,-1.375){$r_3$};
+  \foreach \x/\s in {0/busy,1/busy,2/free,3/free,4/free,5/busy} {\node[\s] at (\x*0.55,-0.275){};}
+  \foreach \x/\s in {0/free,1/free,2/target,3/target,4/target,5/free} {\node[\s] at (\x*0.55,-0.825){};}
+  \foreach \x/\s in {0/busy,1/free,2/busy,3/busy,4/free,5/free} {\node[\s] at (\x*0.55,-1.375){};}
+
+  % --- teacher_busy ---
+  \begin{scope}[xshift=5.0cm]
+    \node[gtitle] at (1.375,0.95) {\texttt{teacher\_busy}};
+    \foreach \x in {0,1,5} {\node[collbl] at (\x*0.55,0.16){$\tau_{\x}$};}
+    \foreach \x in {2,3,4} {\node[tcol] at (\x*0.55,0.16){$\tau_{\x}$};}
+    \node[rowlbl] at (-0.35,-0.275){$g_1$};
+    \node[rowlbl] at (-0.35,-0.825){$g_2$};
+    \foreach \x/\s in {0/free,1/busy,2/free,3/free,4/busy,5/busy} {\node[\s] at (\x*0.55,-0.275){};}
+    \foreach \x/\s in {0/free,1/free,2/target,3/target,4/target,5/free} {\node[\s] at (\x*0.55,-0.825){};}
+  \end{scope}
+
+  % --- chú giải ---
+  \node[busy] at (0,-2.05){}; \node[anchor=west,font=\scriptsize] at (0.35,-2.05){bận};
+  \node[free] at (1.7,-2.05){}; \node[anchor=west,font=\scriptsize] at (2.05,-2.05){trống};
+  \node[target] at (3.5,-2.05){}; \node[anchor=west,font=\scriptsize] at (3.85,-2.05){khối ứng viên};
+\end{tikzpicture}
+\caption{Kiểm tra tính hợp lệ: để xếp một lớp $t_c{=}3$ tiết vào phòng $r_2$ do
+giáo viên $g_2$ dạy, hệ thống chỉ cần tìm một khối $3$ ô \emph{cùng trống} ở cùng
+các tiết ($\tau_2,\tau_3,\tau_4$) trên \texttt{room\_busy}[$r_2$] \textbf{và}
+\texttt{teacher\_busy}[$g_2$].}
+\label{fig:state-matrices}
+\end{figure}
+
+\paragraph{Chèn / gỡ trong $\mathcal{O}(t_i)$.} Thao tác \texttt{insert} đánh dấu
+$t_i$ ô bận trên hai ma trận và ghi trạng thái vào \texttt{ClassDTO}; \texttt{remove}
+làm ngược lại. Cả hai chỉ tốn $\mathcal{O}(t_i)\le\mathcal{O}(4)$ --- gần như hằng
+số. Ngoài ra \texttt{ScheduleState} cung cấp \texttt{snapshot}/\texttt{restore}
+nhẹ (chỉ lưu ánh xạ \texttt{class\_id}$\to$(phòng, tiết)) để metaheuristic có thể
+thử một nước đi rồi hoàn tác tức thì --- nền tảng cho Local Search và ALNS.
+
+\subsection{Đánh giá hợp lệ cục bộ (Fast Feasibility Check)}
+Hàm \texttt{can\_place($c,r,s_0$)} trả lời ``lớp $c$ có đặt được vào phòng $r$ từ
+tiết $s_0$ không'' theo đúng thứ tự cắt tỉa từ rẻ tới đắt:
+\begin{enumerate}[leftmargin=*]
+  \item Kiểm tra sức chứa $c_r \ge s_c$ (một phép so sánh) --- loại nhanh phần lớn
+  phòng không hợp lệ.
+  \item Quét $t_c$ ô trên \texttt{room\_busy} và \texttt{teacher\_busy}; gặp ô bận
+  đầu tiên là trả \texttt{False} ngay (short-circuit).
+\end{enumerate}
+Cùng nhóm tiện ích: \texttt{find\_position} (vị trí trống đầu tiên cho một lớp) và
+\texttt{feasible\_room\_count} (đếm số phòng khả thi --- dùng cho Regret-2 ở
+Mục~\ref{sec:alns}). Tập $\mathcal{S}(t_i)$ được \emph{cache} theo thời lượng để
+không phải sinh lại. Nhờ thiết kế này, một lần kiểm tra hợp lệ chỉ tốn
+$\mathcal{O}(t_i)$, cho phép các vòng lặp tìm kiếm chạy hàng chục nghìn lần/giây.

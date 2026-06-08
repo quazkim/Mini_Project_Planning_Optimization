@@ -1,0 +1,22 @@
+\begin{table}[H]
+\centering\small
+\caption{Nhóm lớn ($N\ge 500$). Cùng ngân sách $30$s; LS/ALNS trung bình các seed.}
+\label{tab:bench-large}
+\begin{tabular}{lrr r l ll l r}
+\toprule
+\multirow{2}{*}{Instance} & \multirow{2}{*}{$N$} & \multirow{2}{*}{$M$}
+& \multirow{2}{*}{Greedy}
+& \multicolumn{1}{c}{LS} & \multicolumn{2}{c}{ALNS} & \multirow{2}{*}{CP-SAT}
+& \multirow{2}{*}{$\Delta$(ALNS$-$Gr)} \\
+\cmidrule(lr){5-5}\cmidrule(lr){6-7}
+& & & & min/avg/max & min/avg/max & std & & \\
+\midrule
+\texttt{test07} & 500 & 30 & 499 & 500/500.0/500 & 500/500.0/500 & 0.00 & 500 (OPTI) & +1.0 \\
+\texttt{hustack02} & 500 & 50 & 410 & 415/415.5/416 & 410/410.5/411 & 0.50 & 410 (FEAS) & +0.5 \\
+\texttt{hustack03} & 700 & 50 & 453 & 455/455.5/456 & 453/453.0/453 & 0.00 & 453 (FEAS) & +0.0 \\
+\texttt{hustack09} & 800 & 50 & 477 & 478/478.0/478 & 477/477.0/477 & 0.00 & 478 (FEAS) & +0.0 \\
+\texttt{test08} & 1000 & 50 & 959 & 982/982.5/983 & 1000/1000.0/1000 & 0.00 & 990 (FEAS) & +41.0 \\
+\texttt{hustack10} & 1000 & 50 & 508 & 508/508.0/508 & 508/508.0/508 & 0.00 & 508 (OPTI) & +0.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
